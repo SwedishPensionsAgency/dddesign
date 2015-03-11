@@ -10,7 +10,7 @@ load("orange_report_2014_cover/plot-data-omslag.RData")
 ## Canvas ----
 pagewidth = 210
 pageheight = 297
-binwidth = 20
+binwidth = 15
 
 # Define canvas lines along which to plot
 pdf = data_frame(
@@ -115,36 +115,72 @@ while (segment <= max(pdf$segment_id)) {
 }
 
 ## Create plot coords ----
-plotdata <- plotdata %>% 
+plotdata_coords <- plotdata %>% 
   left_join(pdf, by = "segment_id") %>% 
   mutate(starting_point = 0)
 
-for (i in 1:nrow(plotdata)) {
-  segment <- plotdata$segment_id[i]
-  previous_segment <- plotdata$segment_id[i-1]
+for (i in 1:nrow(plotdata_coords)) {
+  segment <- plotdata_coords$segment_id[i]
+  previous_segment <- plotdata_coords$segment_id[i-1]
   if (length(previous_segment) == 0)
     previous_segment <- 0
   
   # Start a new line
-  if (previous_segment != segment) {
-    plotdata$x1[i] <- 0
-    plotdata$y1[i] <- plotdata$y1[i]
-  } else {
-    plotdata$x1[i] <- plotdata$x2[i-1]
-    plotdata$y1[i] <- plotdata$y2[i-1]
+  if (previous_segment == segment) {
+    plotdata_coords$x1[i] <- plotdata_coords$x2[i-1]
+    plotdata_coords$y1[i] <- plotdata_coords$y2[i-1]
   }
   
-  plotdata$x2[i] <- plotdata$x1[i] + plotdata$dist[i] / sqrt(2)
-  plotdata$y2[i] <- plotdata$y1[i] + plotdata$dist[i] / sqrt(2)
+  plotdata_coords$x2[i] <- plotdata_coords$x1[i] + plotdata_coords$dist[i] / sqrt(2)
+  plotdata_coords$y2[i] <- plotdata_coords$y1[i] + plotdata_coords$dist[i] / sqrt(2)
 
 }
 
-ggplot(plotdata, aes(x = x1, xend = x2, y = y1, yend = y2, color = color)) +
-  geom_segment() +
+ggplot(plotdata_coords, aes(x = x1, xend = x2, y = y1, yend = y2, color = color)) +
+  geom_segment(size = binwidth) +
   xlim(0, pagewidth) +
-  ylim(0, pageheight)
+  ylim(0, pageheight) +
+  scale_color_manual(values = pmreports::pm_colors()[c(7, 9, 8, 6, 5, 3, 2, 1, 4)])
 
 
+plotdata_coords$xa <- numeric(1)
+plotdata_coords$xb <- numeric(1)
+plotdata_coords$xc <- numeric(1)
+plotdata_coords$xd <- numeric(1)
+plotdata_coords$ya <- numeric(1)
+plotdata_coords$yb <- numeric(1)
+plotdata_coords$yc <- numeric(1)
+plotdata_coords$yd <- numeric(1)
 
+for (i in 1:nrow(plotdata_coords)) {
+  plotdata_coords$xa[i] <- plotdata_coords$x1[i] + binwidth / 2 * sqrt(2)
+  plotdata_coords$xb[i] <- plotdata_coords$x1[i] - binwidth / 2 * sqrt(2)
+  
+  plotdata_coords$ya[i] <- plotdata_coords$y1[i] - binwidth / 2 * sqrt(2)
+  plotdata_coords$yb[i] <- plotdata_coords$y1[i] + binwidth / 2 * sqrt(2)
+  
+  plotdata_coords$xc[i] <- plotdata_coords$x2[i] - binwidth / 2 * sqrt(2)
+  plotdata_coords$xd[i] <- plotdata_coords$x2[i] + binwidth / 2 * sqrt(2)
+  
+  plotdata_coords$yc[i] <- plotdata_coords$y2[i] + binwidth / 2 * sqrt(2)
+  plotdata_coords$yd[i] <- plotdata_coords$y2[i] - binwidth / 2 * sqrt(2)
+}
+
+# Convert wide data to long data
+pd_long <- plotdata_coords %>%
+  mutate(id = 1:n()) %>% 
+  gather(rowidx, x, xa:xd) %>%
+  select(id, color, x) %>%
+  bind_cols(
+    plotdata_coords %>%
+      gather(rowidy, y, ya:yd) %>%
+      select(y)
+  ) %>% tbl_df %>% arrange(id)
+
+ggplot(pd_long, aes(x = x, y = y, fill = color, group = id)) +
+  geom_polygon() +
+  scale_fill_manual(values = pm_colors_rgb()[c(6, 7, 9, 5, 1, 3, 4, 2, 8)]) +
+  geom_vline(xintercept = c(0, pagewidth)) +
+  geom_hline(yintercept = c(0, pageheight))
 
 
