@@ -103,10 +103,14 @@ while (segment <= max(pdf$segment_id)) {
     
     datacount <- datacount + 1
   } else {
-    segment <- segment + 1
-    seglen <- 0
-    newrow <- list(segment_id = segment, color = pd$variable[datacount], dist = val)
+    newrow <- list(segment_id = segment, color = pd$variable[datacount], dist = seglen)
     plotdata[nrow(plotdata) + 1,] <- newrow
+    
+    segment <- segment + 1
+    newrow <- list(segment_id = segment, color = pd$variable[datacount], dist = val - seglen)
+    plotdata[nrow(plotdata) + 1,] <- newrow
+    
+    seglen <- pdf$length[segment] - (val - seglen)
   }
 }
 
@@ -116,14 +120,29 @@ plotdata <- plotdata %>%
   mutate(starting_point = 0)
 
 for (i in 1:nrow(plotdata)) {
-  x1 <- plotdata$x1[i]
-  y1 <- plotdata$y1[i]
+  segment <- plotdata$segment_id[i]
+  previous_segment <- plotdata$segment_id[i-1]
+  if (length(previous_segment) == 0)
+    previous_segment <- 0
   
-  x2 <- plotdata$x1[i] + plotdata$dist[i] * sqrt(2)
-  y2 <- plotdata$y1[i] + plotdata$dist[i] * sqrt(2)
+  # Start a new line
+  if (previous_segment != segment) {
+    plotdata$x1[i] <- 0
+    plotdata$y1[i] <- plotdata$y1[i]
+  } else {
+    plotdata$x1[i] <- plotdata$x2[i-1]
+    plotdata$y1[i] <- plotdata$y2[i-1]
+  }
+  
+  plotdata$x2[i] <- plotdata$x1[i] + plotdata$dist[i] / sqrt(2)
+  plotdata$y2[i] <- plotdata$y1[i] + plotdata$dist[i] / sqrt(2)
+
 }
 
-
+ggplot(plotdata, aes(x = x1, xend = x2, y = y1, yend = y2, color = color)) +
+  geom_segment() +
+  xlim(0, pagewidth) +
+  ylim(0, pageheight)
 
 
 
