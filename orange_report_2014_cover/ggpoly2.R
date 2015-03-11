@@ -4,7 +4,7 @@ library(tidyr)
 library(ggplot2)
 
 ## Data ----
-load("plot-data-omslag.RData")
+load("orange_report_2014_cover/plot-data-omslag.RData")
 
 
 ## Canvas ----
@@ -106,14 +106,26 @@ while (segment <= max(pdf$segment_id)) {
     segment <- segment + 1
     seglen <- 0
     newrow <- list(segment_id = segment, color = pd$variable[datacount], dist = val)
+    plotdata[nrow(plotdata) + 1,] <- newrow
   }
 }
 
 ## Create plot coords ----
 plotdata <- plotdata %>% 
-  left_join(pdf, by = "segment_id")
+  left_join(pdf, by = "segment_id") %>% 
+  mutate(starting_point = 0)
 
-while(TRUE) {
+for (i in 1:nrow(plotdata)) {
+  x1 <- plotdata$x1[i]
+  y1 <- plotdata$y1[i]
   
+  x2 <- plotdata$x1[i] + plotdata$dist[i] * sqrt(2)
+  y2 <- plotdata$y1[i] + plotdata$dist[i] * sqrt(2)
 }
+
+
+
+
+
+
 
