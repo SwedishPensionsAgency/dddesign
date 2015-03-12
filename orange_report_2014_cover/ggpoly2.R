@@ -9,9 +9,9 @@ load("orange_report_2014_cover/plot-data-omslag.RData")
 
 
 ## Canvas ----
-pagewidth = 210
-pageheight = 297
-binwidth = 15
+pagewidth = 216
+pageheight = 303
+binwidth = 16
 
 # Define canvas lines along which to plot
 pdf = data_frame(
@@ -49,18 +49,17 @@ while (x1 < pagewidth - binwidth/2 * sqrt(2)) {
     ## When we have reached the bottom of the page
     
     # Starting x
-    x1 <- x1 + binwidth * sqrt(2) + y1
+    x1 <- x1 + binwidth * sqrt(2) - y1
     
     # Starting y
     y1 <- 0
     
     # Target x
     dist <- (pagewidth - x1)
-    x2 <- x1 + dist
-    
-    # Target y
     y2 <- min(dist, pageheight)
     
+    # Target y
+    x2 <- min(pagewidth, pagewidth - (dist - pageheight))
   }
   
   pdf[nrow(pdf) + 1,] <- c(x1, y1, x2, y2, sqrt((y2 - y1)^2 + (x2 - x1)^2))
@@ -78,7 +77,7 @@ ggplot(pdf, aes(x = x1, xend = x2, y = y1, yend = y2)) +
 ## Map plot data to grid data ----
 pd <- plot.data %>% 
   tbl_df() %>% 
-  filter(sex == "män" & value > 50) %>% 
+  filter(sex == "kvinnor" & value > 50) %>% 
   # Normalize data to total length of segments
   mutate(value = value * sum(pdf$length)/sum(value))
 
@@ -86,48 +85,36 @@ pd <- plot.data %>%
 plotdata <- data_frame(
   segment_id = integer(),
   color = factor(levels = levels(plot.data$variable)),
-  dist = numeric(),
-  is_first = logical(),
-  is_last = logical()
+  dist = numeric()
 )
 
 segment <- 1
 datacount <- 1
 seglen <- 0
-is_first <- FALSE
-is_last <- FALSE
 
 # while (count < sum(pdf$length)) {
 while (segment <= max(pdf$segment_id)) {
-  if (i == 1) {
-    is_first = TRUE
-  } 
-  
+
   seglen <- ifelse(seglen > 0, seglen, pdf$length[segment])
   val <- pd$value[datacount]
   
   if (val < seglen) {
     seglen <- seglen - val
-    newrow <- list(segment_id = segment, color = pd$variable[datacount], dist = val, is_first = is_first, is_last = is_last)
+    newrow <- list(segment_id = segment, color = pd$variable[datacount], dist = val)
     plotdata[nrow(plotdata) + 1,] <- newrow
     
-    is_first <- FALSE
     datacount <- datacount + 1
   } else {
-    is_last <- TRUE
     
-    newrow <- list(segment_id = segment, color = pd$variable[datacount], dist = seglen, is_first = is_first, is_last = is_last)
+    newrow <- list(segment_id = segment, color = pd$variable[datacount], dist = seglen)
     plotdata[nrow(plotdata) + 1,] <- newrow
     
     segment <- segment + 1
-    is_first <- TRUE
-    is_last <- FALSE
-    newrow <- list(segment_id = segment, color = pd$variable[datacount], dist = val - seglen, is_first = is_first, is_last = is_last)
+    newrow <- list(segment_id = segment, color = pd$variable[datacount], dist = val - seglen)
     plotdata[nrow(plotdata) + 1,] <- newrow
     
     seglen <- pdf$length[segment] - (val - seglen)
     
-    is_first <- FALSE
   }
 }
 
@@ -183,7 +170,7 @@ for (i in 1:nrow(plotdata_coords)) {
   plotdata_coords$yd[i] <- plotdata_coords$y2[i] - binwidth / 2 * sqrt(2)
   
   # Canvas borders correction
-  if ()
+  # if ()
 }
 
 # Convert wide data to long data
@@ -199,9 +186,9 @@ pd_long <- plotdata_coords %>%
 
 ggplot(pd_long, aes(x = x, y = y, fill = color, group = id)) +
   geom_polygon() +
-  scale_fill_manual(values = pm_colors_rgb()[c(6, 7, 9, 5, 1, 3, 4, 2, 8)]) +
+  scale_fill_manual(values = pm_colors_cmyk()[c(6, 7, 9, 5, 1, 3, 4, 2, 8)]) +
   geom_vline(xintercept = c(0, pagewidth)) +
   geom_hline(yintercept = c(0, pageheight)) +
   theme(legend.position = "none")
-ggsave("or_cover_v1.pdf", width = 210, height = 297, units = "mm")
+ggsave("or_cover_v1_kvinnor.pdf", width = pageheight, height = pageheight, units = "mm")
 
