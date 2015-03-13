@@ -12,6 +12,7 @@ load("orange_report_2014_cover/plot-data-omslag.RData")
 pagewidth = 216
 pageheight = 303
 binwidth = 16
+SEX = "män"
 
 # Define canvas lines along which to plot
 pdf = data_frame(
@@ -77,7 +78,7 @@ ggplot(pdf, aes(x = x1, xend = x2, y = y1, yend = y2)) +
 ## Map plot data to grid data ----
 pd <- plot.data %>% 
   tbl_df() %>% 
-  filter(sex == "kvinnor" & value > 50) %>% 
+  filter(sex == SEX & value > 50) %>% 
   # Normalize data to total length of segments
   mutate(value = value * sum(pdf$length)/sum(value))
 
@@ -184,11 +185,20 @@ pd_long <- plotdata_coords %>%
       select(y)
   ) %>% tbl_df %>% arrange(id)
 
+
+## Final plot ----
+SEX <- gsub("ä", "ae", SEX)
+
 ggplot(pd_long, aes(x = x, y = y, fill = color, group = id)) +
   geom_polygon() +
-  scale_fill_manual(values = pm_colors_cmyk()[c(6, 7, 9, 5, 1, 3, 4, 2, 8)]) +
-  geom_vline(xintercept = c(0, pagewidth)) +
-  geom_hline(yintercept = c(0, pageheight)) +
-  theme(legend.position = "none")
-ggsave("or_cover_v1_kvinnor.pdf", width = pageheight, height = pageheight, units = "mm")
+  scale_fill_manual(values = pm_colors_rgb()[c(6, 7, 9, 5, 1, 3, 4, 2, 8)]) +
+  # geom_vline(xintercept = c(0, pagewidth)) +
+  # geom_hline(yintercept = c(0, pageheight)) +
+  theme(legend.position = "none") +
+  coord_cartesian(xlim = c(0, pagewidth), ylim = c(0, pageheight)) +
+  theme(axis.text = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank())
+ggsave(sprintf("or_cover_v1_%s.pdf", SEX), width = pageheight, height = pageheight, units = "mm")
+ggsave(sprintf("or_cover_v1_%s.png", SEX), width = pageheight, height = pageheight, units = "mm")
 
